@@ -1,0 +1,17 @@
+asgiref==3.8.1
+blinker==1.9.0
+click==8.1.7
+Flask==2.3.2
+gevent==23.9.1
+greenlet==3.1.1
+gunicorn==23.0.0
+importlib_metadata==8.5.0
+itsdangerous==2.2.0
+Jinja2==3.1.4
+MarkupSafe==3.0.2
+packaging==24.2
+typing_extensions==4.12.2
+Werkzeug==3.1.3
+zipp==3.21.0
+zope.event==5.0
+zope.interface==7.2

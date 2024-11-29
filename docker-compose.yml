@@ -1,0 +1,17 @@
+services:
+  flask-app:
+    build: .
+    ports:
+      - "5000:5000"
+    container_name: flask-app
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"         # Limit to 2 CPUs
+          memory: "2G"       # Limit to 2 GiB of memory
+        reservations:
+          cpus: "1.0"         # Reserve 1 CPU for the app
+          memory: "1G"       # Reserve 1 GiB of memory for the app
+    command: >
+      gunicorn --worker-class gevent --bind 0.0.0.0:5000 --workers 1 --threads 100  app:app
