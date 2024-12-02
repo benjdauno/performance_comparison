@@ -5,14 +5,19 @@ import random
 import string
 import gevent
 import os
+from database import get_database, generate_fibonacci, generate_fibonacci_with_sql
+import humanfriendly
+from flask import request
 
 from flask import Flask
 
 app = Flask(__name__)
 file_name = "/tmp/test_file.txt"
+
 with open(file_name, 'w') as f:
     for _ in range(10000):
         f.write(random.choice(string.ascii_letters) + "\n")
+        
 # Endpoint 1: CPU and memory consumption with finite loop duration
 @app.route('/cpu_memory1')
 def cpu_memory1():
@@ -80,4 +85,90 @@ def cpu_memory_io3():
 
     return f"Read file {file_name} and slept for I/O simulation."
 
-# Don't call app.run() here; Gunicorn will manage it.
+@app.route('/benchmark/fibonacci/cpu/<int:n>')
+def fibonacci_cpu_benchmark(n):
+    """
+    Generate the Fibonacci sequence up to the nth term using recursion.
+    """
+    time_measurement,fib_sequence = generate_fibonacci(n)
+    return {
+        "sequence": fib_sequence,
+        "duration": humanfriendly.format_timespan(time_measurement.duration,detailed=True)
+    }
+    
+    
+@app.route('/benchmark/fibonacci/io/<int:n>')
+def fibonacci_io_benchmark(n):
+    """
+    Generate the Fibonacci sequence up to the nth term using recursion.
+    """
+    split = request.args.get('split', default=1, type=int)
+    
+    engine = get_database()
+    with engine.connect() as conn:
+        time_measurement,fib_sequence = generate_fibonacci_with_sql(conn,split,n)
+        return {
+            "sequence": fib_sequence,
+            "duration": humanfriendly.format_timespan(time_measurement.duration,detailed=True)
+        }
+
+
+@app.route('/benchmark/fibonacci/<int:n>')
+def fibonacci_benchmark(n):
+    """
+    Generate the Fibonacci sequence up to the nth term using recursion.
+    """
+    split = request.args.get('split', default=1, type=int)
+    rounds = request.args.get('rounds', default=1, type=int)
+    detail = request.args.get('detail', default=0, type=int)
+
+
+    engine = get_database()
+    
+    cpu_measurements = []
+    sql_measurements = []
+    
+    for round in range(rounds):
+        cpu_time_measurement,cpu_fib_sequence = generate_fibonacci(split)
+        end_sequence = cpu_fib_sequence[-2:]
+        last_sequence = [value[1] for value in end_sequence]
+        cpu_measurements.append(cpu_time_measurement)
+    
+    
+    with engine.connect() as conn:
+        sql_time_measurement,sql_fib_sequence = generate_fibonacci_with_sql(conn,split+1,n,rounds,last_sequence)
+        sql_measurements.append(sql_time_measurement)
+    
+    
+    cpu_time_total = sum([measurement.duration for measurement in cpu_measurements])
+    cpu_time_avg = cpu_time_total / rounds
+    sql_time_total = sum([measurement.duration for measurement in sql_measurements])
+    sql_time_avg = sql_time_total / rounds
+    
+    
+    
+    
+    
+    time_info ={
+        "n": n,
+        "split": split,
+        "rounds": rounds,
+        "detail": detail,
+        "cpu_avg_duration": humanfriendly.format_timespan(cpu_time_avg,detailed=True),
+        "sql_avg_duration": humanfriendly.format_timespan(sql_time_avg,detailed=True),
+        "cpu_total_duration": humanfriendly.format_timespan(cpu_time_total,detailed=True),
+        "sql_total_duration": humanfriendly.format_timespan(sql_time_total,detailed=True),
+        "duration": humanfriendly.format_timespan(cpu_time_total + sql_time_total,detailed=True)
+    }
+    
+    if detail == 1:
+        
+        time_info_detail ={
+            "cpu_sequence": cpu_fib_sequence,
+            "sql_sequence": sql_fib_sequence,
+            "sequence": cpu_fib_sequence + sql_fib_sequence,
+        }
+        
+        time_info.update(time_info_detail)
+        
+    return time_info
