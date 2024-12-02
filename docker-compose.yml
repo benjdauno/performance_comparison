@@ -8,10 +8,35 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "2.0"         # Limit to 2 CPUs
+          cpus: "2.0"         # Limit to 1 CPUs
           memory: "2G"       # Limit to 2 GiB of memory
         reservations:
-          cpus: "1.0"         # Reserve 1 CPU for the app
+          cpus: "2.0"         # Reserve 1 CPU for the app
           memory: "1G"       # Reserve 1 GiB of memory for the app
+    volumes:
+      - ./requirements.txt:/app/requirements.txt
     command: >
-      gunicorn --worker-class gevent --bind 0.0.0.0:5000 --workers 1 --threads 100  app:app
+      gunicorn --worker-class gevent --bind 0.0.0.0:5000 --workers 1 --worker-connection 1000 app:app
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: strong_password
+    deploy:
+      resources:
+        limits:
+          cpus: "10.0"         
+          memory: "10G"       
+        reservations:
+          cpus: "9.0"         
+          memory: "10G"       
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./mysql/my.cnf:/etc/mysql/my.cnf 
+
+volumes:
+  mysql-data:
