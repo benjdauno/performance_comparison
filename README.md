@@ -34,6 +34,7 @@ There's a Makefile that includes all the commands that are needed to get going.
 1. ```make build``` to build and star the docker containers
 2. ```make test``` to run k6 against the environment
 
+It is possible encouraged to monitor resource usage with the ```docker stats``` command to ensure that containers are being loaded appropriately.
 
 ## Caveats
 
