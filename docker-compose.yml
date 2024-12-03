@@ -1,15 +1,28 @@
 services:
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "5000:5000"  # Expose on localhost
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - worker_experimentation_network
+
   flask-app:
     build: .
-    ports:
-      - "5000:5000"
-    container_name: flask-app
-    # Resource limits
+    expose:
+      - "5000"
     deploy:
+      replicas: 2
+      #endpoint_mode: dnsrr
       resources:
         limits:
-          cpus: "1.0"         # Limit to 1 CPUs
-          memory: "2G"       # Limit to 2 GiB of memory
+          cpus: "1.0"
+          memory: "2G"
+    networks:
+      - worker_experimentation_network
     volumes:
       - ./requirements.txt:/app/requirements.txt
     command: >
@@ -21,11 +34,17 @@ services:
     ports:
       - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: strong_password     
+      MYSQL_ROOT_PASSWORD: strong_password
+    networks:
+      - worker_experimentation_network
     volumes:
       - mysql-data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./mysql/my.cnf:/etc/mysql/my.cnf 
+      - ./mysql/my.cnf:/etc/mysql/my.cnf
 
 volumes:
   mysql-data:
+
+networks:
+  worker_experimentation_network:
+
